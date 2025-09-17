@@ -1,8 +1,10 @@
 import { Request } from 'express';
 import { User } from '@prisma/client';
 
+export type SafeUser = Omit<User, 'password'>;
+
 export interface AuthenticatedRequest extends Request {
-  user?: User;
+  user?: SafeUser;
 }
 
 export interface LoginRequest {

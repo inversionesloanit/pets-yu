@@ -17,7 +17,7 @@ export const validateRegister = [
   body('name').trim().isLength({ min: 2, max: 100 }).withMessage('Name must be 2-100 characters'),
   body('email').isEmail().normalizeEmail().withMessage('Valid email required'),
   body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
-  body('phone').optional().isMobilePhone().withMessage('Valid phone number required'),
+  body('phone').optional().isMobilePhone('any').withMessage('Valid phone number required'),
   body('address').optional().trim().isLength({ max: 500 }).withMessage('Address too long'),
   body('city').optional().trim().isLength({ max: 100 }).withMessage('City name too long'),
   body('country').optional().trim().isLength({ max: 100 }).withMessage('Country name too long'),

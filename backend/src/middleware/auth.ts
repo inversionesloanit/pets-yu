@@ -1,7 +1,7 @@
 import { Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { prisma } from '../index';
-import { AuthenticatedRequest } from '../types';
+import { AuthenticatedRequest, SafeUser } from '../types';
 
 export const authenticateToken = async (
   req: AuthenticatedRequest,
@@ -38,7 +38,7 @@ export const authenticateToken = async (
       return res.status(401).json({ error: 'Invalid token' });
     }
 
-    req.user = user;
+    req.user = user as SafeUser;
     next();
   } catch (error) {
     return res.status(403).json({ error: 'Invalid or expired token' });
@@ -88,7 +88,7 @@ export const optionalAuth = async (
       });
 
       if (user) {
-        req.user = user;
+        req.user = user as SafeUser;
       }
     }
 
