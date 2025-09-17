@@ -62,4 +62,4 @@ ENV PRISMA_ENGINES_CHECKSUM_IGNORE_MISSING=1
 
 # Start application
 ENTRYPOINT ["/usr/bin/dumb-init", "--"]
-CMD ["sh", "-c", "npx prisma migrate deploy && node dist/index.js"]
+CMD ["sh", "-c", "npx prisma db push && node prisma/seed.js || true && node dist/index.js"]
