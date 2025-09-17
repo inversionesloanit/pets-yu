@@ -7,8 +7,8 @@ WORKDIR /app
 COPY package*.json ./
 COPY prisma ./prisma/
 
-# Install dependencies
-RUN npm ci --only=production && npm cache clean --force
+# Install all dependencies (including dev) for build
+RUN npm ci && npm cache clean --force
 
 # Copy source code
 COPY . .
@@ -33,9 +33,11 @@ RUN adduser -S nodejs -u 1001
 
 # Copy built application
 COPY --from=build --chown=nodejs:nodejs /app/dist ./dist
-COPY --from=build --chown=nodejs:nodejs /app/node_modules ./node_modules
 COPY --from=build --chown=nodejs:nodejs /app/package*.json ./
 COPY --from=build --chown=nodejs:nodejs /app/prisma ./prisma
+
+# Install only production dependencies
+RUN npm ci --omit=dev && npm cache clean --force
 
 # Switch to non-root user
 USER nodejs
@@ -49,4 +51,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
 
 # Start application
 ENTRYPOINT ["dumb-init", "--"]
-CMD ["node", "dist/index.js"]
+CMD ["sh", "-c", "npx prisma migrate deploy && node dist/index.js"]
