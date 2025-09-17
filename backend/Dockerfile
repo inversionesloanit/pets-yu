@@ -1,10 +1,12 @@
 # Build stage
-FROM node:20-alpine AS build
+FROM node:20-bullseye-slim AS build
 
 WORKDIR /app
 
 # Install build dependencies
-RUN apk add --no-cache python3 make g++
+RUN apt-get update && apt-get install -y --no-install-recommends \
+  python3 make g++ openssl ca-certificates \
+  && rm -rf /var/lib/apt/lists/*
 
 # Copy package files
 COPY package*.json ./
@@ -23,24 +25,30 @@ RUN npx prisma generate
 RUN npm run build || (echo "Build failed, checking TypeScript errors..." && npx tsc --noEmit --listFiles)
 
 # Production stage
-FROM node:20-alpine AS production
+FROM node:20-bullseye-slim AS production
 
 WORKDIR /app
 
-# Install dumb-init for proper signal handling
-RUN apk add --no-cache dumb-init
+# Install dumb-init and openssl for Prisma engines
+RUN apt-get update && apt-get install -y --no-install-recommends \
+  dumb-init openssl ca-certificates \
+  && rm -rf /var/lib/apt/lists/*
 
 # Create non-root user
 RUN addgroup -g 1001 -S nodejs
 RUN adduser -S nodejs -u 1001
 
 # Copy built application
-COPY --from=build --chown=nodejs:nodejs /app/dist ./dist
-COPY --from=build --chown=nodejs:nodejs /app/package*.json ./
-COPY --from=build --chown=nodejs:nodejs /app/prisma ./prisma
+COPY --from=build /app/dist ./dist
+COPY --from=build /app/package*.json ./
+COPY --from=build /app/prisma ./prisma
 
 # Install only production dependencies
 RUN npm install --omit=dev && npm cache clean --force
+
+# Ensure proper permissions for prisma engines and node modules
+RUN addgroup --system nodejs --gid 1001 && adduser --system --uid 1001 nodejs \
+  && chown -R nodejs:nodejs /app
 
 # Switch to non-root user
 USER nodejs
@@ -52,6 +60,9 @@ EXPOSE 3001
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
   CMD node -e "require('http').get('http://localhost:3001/api/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) })"
 
+ENV PRISMA_GENERATE_SKIP_ENV_CHECK=1
+ENV PRISMA_ENGINES_CHECKSUM_IGNORE_MISSING=1
+
 # Start application
-ENTRYPOINT ["dumb-init", "--"]
+ENTRYPOINT ["/usr/bin/dumb-init", "--"]
 CMD ["sh", "-c", "npx prisma migrate deploy && node dist/index.js"]
