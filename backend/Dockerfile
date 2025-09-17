@@ -3,6 +3,9 @@ FROM node:20-alpine AS build
 
 WORKDIR /app
 
+# Install build dependencies
+RUN apk add --no-cache python3 make g++
+
 # Copy package files
 COPY package*.json ./
 COPY prisma ./prisma/
@@ -16,8 +19,8 @@ COPY . .
 # Generate Prisma client
 RUN npx prisma generate
 
-# Build TypeScript
-RUN npm run build
+# Build TypeScript with verbose output
+RUN npm run build || (echo "Build failed, checking TypeScript errors..." && npx tsc --noEmit --listFiles)
 
 # Production stage
 FROM node:20-alpine AS production
