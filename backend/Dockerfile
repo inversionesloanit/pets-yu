@@ -34,9 +34,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   dumb-init openssl ca-certificates \
   && rm -rf /var/lib/apt/lists/*
 
-# Create non-root user
-RUN addgroup -g 1001 -S nodejs
-RUN adduser -S nodejs -u 1001
+# Create non-root user (Debian/Ubuntu syntax)
+RUN groupadd -g 1001 nodejs || true \
+  && useradd -m -u 1001 -g nodejs -s /bin/bash nodejs || true
 
 # Copy built application
 COPY --from=build /app/dist ./dist
@@ -44,10 +44,7 @@ COPY --from=build /app/package*.json ./
 COPY --from=build /app/prisma ./prisma
 
 # Install only production dependencies
-RUN npm install --omit=dev && npm cache clean --force
-
-# Ensure proper permissions for prisma engines and node modules
-RUN addgroup --system nodejs --gid 1001 && adduser --system --uid 1001 nodejs \
+RUN npm install --omit=dev && npm cache clean --force \
   && chown -R nodejs:nodejs /app
 
 # Switch to non-root user
