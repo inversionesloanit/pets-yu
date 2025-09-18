@@ -13,7 +13,7 @@ COPY package*.json ./
 COPY prisma ./prisma/
 
 # Install all dependencies (including dev) for build
-RUN npm ci --only=production --silent && npm cache clean --force
+RUN npm ci && npm cache clean --force
 
 # Copy source code
 COPY . .
@@ -21,8 +21,18 @@ COPY . .
 # Generate Prisma client
 RUN npx prisma generate
 
-# Build TypeScript with optimizations
+# Verify installations and build
+RUN echo "Node version: $(node --version)"
+RUN echo "NPM version: $(npm --version)"
+RUN echo "TypeScript version: $(npx tsc --version)"
+RUN echo "Available scripts:"
+RUN npm run
+
+# Build TypeScript
 RUN npm run build
+
+# Verify build output
+RUN ls -la dist/
 
 # Production stage
 FROM node:20-bullseye-slim AS production
