@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { body, validationResult, param, query } from 'express-validator';
+import { validateEmail, validatePassword, validatePhone, validateURL, validateUUID, validatePrice, validateRating, validateTextLength } from './security';
 
 export const handleValidationErrors = (req: Request, res: Response, next: NextFunction) => {
   const errors = validationResult(req);
@@ -14,38 +15,38 @@ export const handleValidationErrors = (req: Request, res: Response, next: NextFu
 
 // Auth validation
 export const validateRegister = [
-  body('name').trim().isLength({ min: 2, max: 100 }).withMessage('Name must be 2-100 characters'),
-  body('email').isEmail().normalizeEmail().withMessage('Valid email required'),
-  body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
-  body('phone').optional().isMobilePhone('any').withMessage('Valid phone number required'),
-  body('address').optional().trim().isLength({ max: 500 }).withMessage('Address too long'),
-  body('city').optional().trim().isLength({ max: 100 }).withMessage('City name too long'),
-  body('country').optional().trim().isLength({ max: 100 }).withMessage('Country name too long'),
+  validateTextLength('name', 2, 100),
+  validateEmail(),
+  validatePassword(),
+  validatePhone(),
+  validateTextLength('address', 0, 500),
+  validateTextLength('city', 0, 100),
+  validateTextLength('country', 0, 100),
   handleValidationErrors
 ];
 
 export const validateLogin = [
-  body('email').isEmail().normalizeEmail().withMessage('Valid email required'),
+  validateEmail(),
   body('password').notEmpty().withMessage('Password required'),
   handleValidationErrors
 ];
 
 // Product validation
 export const validateCreateProduct = [
-  body('name').trim().isLength({ min: 2, max: 200 }).withMessage('Product name must be 2-200 characters'),
-  body('description').optional().trim().isLength({ max: 1000 }).withMessage('Description too long'),
-  body('price').isFloat({ min: 0 }).withMessage('Price must be a positive number'),
-  body('image').isURL().withMessage('Valid image URL required'),
-  body('categoryId').isUUID().withMessage('Valid category ID required'),
+  validateTextLength('name', 2, 200),
+  validateTextLength('description', 0, 1000),
+  validatePrice(),
+  validateURL(),
+  validateUUID('categoryId'),
   body('inStock').optional().isBoolean().withMessage('inStock must be boolean'),
-  body('rating').optional().isFloat({ min: 0, max: 5 }).withMessage('Rating must be 0-5'),
+  validateRating(),
   handleValidationErrors
 ];
 
 export const validateUpdateProduct = [
   body('name').optional().trim().isLength({ min: 2, max: 200 }).withMessage('Product name must be 2-200 characters'),
   body('description').optional().trim().isLength({ max: 1000 }).withMessage('Description too long'),
-  body('price').optional().isFloat({ min: 0 }).withMessage('Price must be a positive number'),
+  body('price').optional().isFloat({ min: 0, max: 999999.99 }).withMessage('Price must be a positive number'),
   body('image').optional().isURL().withMessage('Valid image URL required'),
   body('categoryId').optional().isUUID().withMessage('Valid category ID required'),
   body('inStock').optional().isBoolean().withMessage('inStock must be boolean'),
@@ -62,8 +63,8 @@ export const validateCreateCategory = [
 
 // Cart validation
 export const validateAddToCart = [
-  body('productId').isUUID().withMessage('Valid product ID required'),
-  body('quantity').isInt({ min: 1 }).withMessage('Quantity must be at least 1'),
+  validateUUID('productId'),
+  body('quantity').isInt({ min: 1, max: 100 }).withMessage('Quantity must be between 1 and 100'),
   handleValidationErrors
 ];
 

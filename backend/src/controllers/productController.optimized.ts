@@ -1,10 +1,22 @@
 import { Request, Response } from 'express';
 import { prisma } from '../index';
 import { cache, cacheKeys, cacheTTL, invalidateProductCache } from '../services/cache';
-import { CreateProductRequest, UpdateProductRequest, ProductFilters, PaginationParams } from '../types';
 
 export const getAllProducts = async (req: Request, res: Response) => {
   try {
+    const queryParams = req.query;
+    const cacheKey = cacheKeys.products.all(queryParams);
+    
+    // Check cache first
+    const cached = cache.get(cacheKey);
+    if (cached) {
+      return res.json({
+        success: true,
+        data: cached,
+        cached: true
+      });
+    }
+
     const {
       page = 1,
       limit = 10,
@@ -67,20 +79,24 @@ export const getAllProducts = async (req: Request, res: Response) => {
     ]);
 
     const totalPages = Math.ceil(total / take);
+    const result = {
+      products,
+      pagination: {
+        page: Number(page),
+        limit: Number(limit),
+        total,
+        totalPages,
+        hasNext: Number(page) < totalPages,
+        hasPrev: Number(page) > 1
+      }
+    };
+
+    // Cache the result
+    cache.set(cacheKey, result, cacheTTL.products);
 
     res.json({
       success: true,
-      data: {
-        products,
-        pagination: {
-          page: Number(page),
-          limit: Number(limit),
-          total,
-          totalPages,
-          hasNext: Number(page) < totalPages,
-          hasPrev: Number(page) > 1
-        }
-      }
+      data: result
     });
   } catch (error) {
     console.error('Get products error:', error);
@@ -91,6 +107,17 @@ export const getAllProducts = async (req: Request, res: Response) => {
 export const getProductById = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
+    const cacheKey = cacheKeys.products.byId(id);
+    
+    // Check cache first
+    const cached = cache.get(cacheKey);
+    if (cached) {
+      return res.json({
+        success: true,
+        data: cached,
+        cached: true
+      });
+    }
 
     const product = await prisma.product.findUnique({
       where: { id },
@@ -109,6 +136,9 @@ export const getProductById = async (req: Request, res: Response) => {
       return res.status(404).json({ error: 'Product not found' });
     }
 
+    // Cache the result
+    cache.set(cacheKey, product, cacheTTL.products);
+
     res.json({
       success: true,
       data: product
@@ -121,7 +151,7 @@ export const getProductById = async (req: Request, res: Response) => {
 
 export const createProduct = async (req: Request, res: Response) => {
   try {
-    const { name, description, price, image, categoryId, inStock = true, rating = 0 }: CreateProductRequest = req.body;
+    const { name, description, price, image, categoryId, inStock = true, rating = 0 } = req.body;
 
     // Verify category exists
     const category = await prisma.category.findUnique({
@@ -152,6 +182,9 @@ export const createProduct = async (req: Request, res: Response) => {
       }
     });
 
+    // Invalidate related caches
+    invalidateProductCache();
+
     res.status(201).json({
       success: true,
       data: product,
@@ -166,7 +199,7 @@ export const createProduct = async (req: Request, res: Response) => {
 export const updateProduct = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const updateData: UpdateProductRequest = req.body;
+    const updateData = req.body;
 
     // Check if product exists
     const existingProduct = await prisma.product.findUnique({
@@ -177,7 +210,7 @@ export const updateProduct = async (req: Request, res: Response) => {
       return res.status(404).json({ error: 'Product not found' });
     }
 
-    // If categoryId is being updated, verify it exists
+    // Verify category if being updated
     if (updateData.categoryId) {
       const category = await prisma.category.findUnique({
         where: { id: updateData.categoryId }
@@ -200,6 +233,9 @@ export const updateProduct = async (req: Request, res: Response) => {
         }
       }
     });
+
+    // Invalidate related caches
+    invalidateProductCache(id);
 
     res.json({
       success: true,
@@ -229,6 +265,9 @@ export const deleteProduct = async (req: Request, res: Response) => {
       where: { id }
     });
 
+    // Invalidate related caches
+    invalidateProductCache(id);
+
     res.json({
       success: true,
       message: 'Product deleted successfully'
@@ -242,7 +281,19 @@ export const deleteProduct = async (req: Request, res: Response) => {
 export const getProductsByCategory = async (req: Request, res: Response) => {
   try {
     const { categoryId } = req.params;
-    const { page = 1, limit = 10 } = req.query as any;
+    const { page = 1, limit = 10 } = req.query;
+    
+    const cacheKey = cacheKeys.products.byCategory(categoryId, { page, limit });
+    
+    // Check cache first
+    const cached = cache.get(cacheKey);
+    if (cached) {
+      return res.json({
+        success: true,
+        data: cached,
+        cached: true
+      });
+    }
 
     const skip = (Number(page) - 1) * Number(limit);
     const take = Number(limit);
@@ -266,20 +317,24 @@ export const getProductsByCategory = async (req: Request, res: Response) => {
     ]);
 
     const totalPages = Math.ceil(total / take);
+    const result = {
+      products,
+      pagination: {
+        page: Number(page),
+        limit: Number(limit),
+        total,
+        totalPages,
+        hasNext: Number(page) < totalPages,
+        hasPrev: Number(page) > 1
+      }
+    };
+
+    // Cache the result
+    cache.set(cacheKey, result, cacheTTL.products);
 
     res.json({
       success: true,
-      data: {
-        products,
-        pagination: {
-          page: Number(page),
-          limit: Number(limit),
-          total,
-          totalPages,
-          hasNext: Number(page) < totalPages,
-          hasPrev: Number(page) > 1
-        }
-      }
+      data: result
     });
   } catch (error) {
     console.error('Get products by category error:', error);

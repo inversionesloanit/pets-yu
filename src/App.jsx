@@ -1,21 +1,34 @@
 import { useEffect, useMemo, useState } from 'react'
-import { ShoppingBag, Phone, Mail, MapPin, Menu, X, Search, Heart, User, ShoppingCart } from 'lucide-react'
+import { ShoppingBag, Phone, Mail, MapPin, Menu, X, Search, Heart, User, ShoppingCart, LogOut } from 'lucide-react'
+import { AuthProvider, useAuth } from './contexts/AuthContext'
+import { CartProvider, useCart } from './contexts/CartContext'
+import { useProducts } from './hooks/useProducts'
+import LoginModal from './components/auth/LoginModal'
+import RegisterModal from './components/auth/RegisterModal'
+import Notification from './components/ui/Notification'
 
-function App() {
+function AppContent() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [activeTab, setActiveTab] = useState('corporate')
-  const [cartItems, setCartItems] = useState([])
   const [searchQuery, setSearchQuery] = useState('')
   const [currentSlide, setCurrentSlide] = useState(0)
   const [category, setCategory] = useState('Todos')
   const [isCartOpen, setIsCartOpen] = useState(false)
+  const [showLoginModal, setShowLoginModal] = useState(false)
+  const [showRegisterModal, setShowRegisterModal] = useState(false)
+  const [notification, setNotification] = useState({ show: false, message: '', type: 'info' })
 
-  const products = [
-    { id: 1, name: 'Collar Premium para Perros', price: 25.99, image: 'https://placehold.co/300x300/FFD700/FFFFFF?text=Premium+Collar', category: 'Accesorios', rating: 4.8, inStock: true },
-    { id: 2, name: 'Juguete Interactivo para Gatos', price: 18.5, image: 'https://placehold.co/300x300/FF6B6B/FFFFFF?text=Interactive+Toy', category: 'Juguetes', rating: 4.5, inStock: true },
-    { id: 3, name: 'Cama Cómoda para Mascotas', price: 89.99, image: 'https://placehold.co/300x300/4ECDC4/FFFFFF?text=Comfort+Bed', category: 'Hogar', rating: 4.9, inStock: false },
-    { id: 4, name: 'Arnes de Seguridad para Perros', price: 32.0, image: 'https://placehold.co/300x300/45B7D1/FFFFFF?text=Safety+Harness', category: 'Accesorios', rating: 4.7, inStock: true },
-  ]
+  const { user, isAuthenticated, logout } = useAuth()
+  const { items: cartItems, totalItems: totalItemsInCart, totalPrice, addToCart, updateQuantity, removeFromCart } = useCart()
+  const { products, categories, isLoading: productsLoading, error: productsError } = useProducts()
+
+  const showNotification = (message, type = 'info') => {
+    setNotification({ show: true, message, type })
+  }
+
+  const hideNotification = () => {
+    setNotification({ show: false, message: '', type: 'info' })
+  }
 
   const testimonials = [
     { id: 1, name: 'María González', location: 'Panamá City', text: 'Los productos de Pets Yu son de excelente calidad y mi perro los ama!', rating: 5 },
@@ -36,34 +49,34 @@ function App() {
     return () => clearInterval(timer)
   }, [slides.length])
 
-  const handleAddToCart = (product) => {
-    setCartItems((prev) => {
-      const existing = prev.find((i) => i.id === product.id)
-      if (existing) {
-        return prev.map((i) => (i.id === product.id ? { ...i, quantity: i.quantity + 1 } : i))
-      }
-      return [...prev, { ...product, quantity: 1 }]
-    })
-  }
-
-  const removeFromCart = (productId) => {
-    setCartItems((prev) => prev.filter((i) => i.id !== productId))
-  }
-
-  const updateQuantity = (productId, newQuantity) => {
-    if (newQuantity <= 0) {
-      removeFromCart(productId)
-      return
+  const handleAddToCart = async (product) => {
+    const result = await addToCart(product, 1)
+    if (result.success) {
+      showNotification('Producto agregado al carrito', 'success')
+    } else {
+      showNotification(result.error || 'Error al agregar al carrito', 'error')
     }
-    setCartItems((prev) => prev.map((i) => (i.id === productId ? { ...i, quantity: newQuantity } : i)))
   }
 
-  const totalItemsInCart = useMemo(() => cartItems.reduce((s, i) => s + i.quantity, 0), [cartItems])
-  const totalPrice = useMemo(() => cartItems.reduce((s, i) => s + i.price * i.quantity, 0), [cartItems])
+  const handleRemoveFromCart = async (itemId) => {
+    const result = await removeFromCart(itemId)
+    if (result.success) {
+      showNotification('Producto eliminado del carrito', 'success')
+    } else {
+      showNotification(result.error || 'Error al eliminar del carrito', 'error')
+    }
+  }
+
+  const handleUpdateQuantity = async (itemId, newQuantity) => {
+    const result = await updateQuantity(itemId, newQuantity)
+    if (!result.success) {
+      showNotification(result.error || 'Error al actualizar cantidad', 'error')
+    }
+  }
 
   const filteredProducts = useMemo(() => {
     return products
-      .filter((p) => (category === 'Todos' ? true : p.category === category))
+      .filter((p) => (category === 'Todos' ? true : p.category?.name === category))
       .filter((p) => p.name.toLowerCase().includes(searchQuery.toLowerCase()))
   }, [products, category, searchQuery])
 
@@ -126,9 +139,29 @@ function App() {
               <button className="p-2 text-gray-600 hover:text-yellow-600 transition-colors" aria-label="Favoritos">
                 <Heart size={20} />
               </button>
-              <button className="p-2 text-gray-600 hover:text-yellow-600 transition-colors" aria-label="Cuenta">
-                <User size={20} />
-              </button>
+              {isAuthenticated ? (
+                <div className="flex items-center space-x-2">
+                  <span className="text-sm text-gray-700 hidden sm:block">
+                    ¡Hola, {user?.name}!
+                  </span>
+                  <button 
+                    onClick={logout}
+                    className="p-2 text-gray-600 hover:text-red-600 transition-colors" 
+                    aria-label="Cerrar sesión"
+                    title="Cerrar sesión"
+                  >
+                    <LogOut size={20} />
+                  </button>
+                </div>
+              ) : (
+                <button 
+                  onClick={() => setShowLoginModal(true)}
+                  className="p-2 text-gray-600 hover:text-yellow-600 transition-colors" 
+                  aria-label="Iniciar sesión"
+                >
+                  <User size={20} />
+                </button>
+              )}
               <button onClick={() => setIsCartOpen(true)} className="p-2 text-gray-600 hover:text-yellow-600 transition-colors relative" aria-label="Carrito" aria-haspopup="dialog" aria-expanded={isCartOpen}>
                 <ShoppingCart size={20} />
                 {totalItemsInCart > 0 && (
@@ -364,27 +397,55 @@ function App() {
                   />
                   <Search size={20} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                 </div>
-                <div className="flex gap-2">
-                  {['Todos', 'Accesorios', 'Juguetes', 'Hogar'].map((c) => (
+                <div className="flex gap-2 flex-wrap">
+                  <button
+                    onClick={() => setCategory('Todos')}
+                    className={
+                      'Todos' === category
+                        ? 'px-4 py-2 bg-yellow-600 text-white rounded-lg transition-colors'
+                        : 'px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors'
+                    }
+                    aria-pressed={'Todos' === category}
+                  >
+                    Todos
+                  </button>
+                  {categories.map((c) => (
                     <button
-                      key={c}
-                      onClick={() => setCategory(c)}
+                      key={c.id}
+                      onClick={() => setCategory(c.name)}
                       className={
-                        c === category
+                        c.name === category
                           ? 'px-4 py-2 bg-yellow-600 text-white rounded-lg transition-colors'
                           : 'px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors'
                       }
-                      aria-pressed={c === category}
+                      aria-pressed={c.name === category}
                     >
-                      {c}
+                      {c.name}
                     </button>
                   ))}
                 </div>
               </div>
 
               {/* Products Grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-                {filteredProducts.map((product) => (
+              {productsLoading ? (
+                <div className="flex justify-center items-center py-12">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-yellow-600"></div>
+                </div>
+              ) : productsError ? (
+                <div className="text-center py-12">
+                  <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg max-w-md mx-auto">
+                    {productsError}
+                  </div>
+                </div>
+              ) : filteredProducts.length === 0 ? (
+                <div className="text-center py-12">
+                  <div className="bg-gray-50 border border-gray-200 text-gray-700 px-4 py-3 rounded-lg max-w-md mx-auto">
+                    No se encontraron productos
+                  </div>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+                  {filteredProducts.map((product) => (
                   <div key={product.id} className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow duration-300">
                     <div className="relative">
                       <img 
@@ -401,7 +462,7 @@ function App() {
                     </div>
                     <div className="p-6">
                       <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm text-yellow-600 font-medium">{product.category}</span>
+                        <span className="text-sm text-yellow-600 font-medium">{product.category?.name}</span>
                         <div className="flex items-center">
                           {[...Array(5)].map((_, i) => (
                             <StarIcon key={i} filled={i < Math.floor(product.rating)} />
@@ -411,7 +472,7 @@ function App() {
                       </div>
                       <h3 className="text-xl font-bold text-gray-900 mb-2">{product.name}</h3>
                       <div className="flex items-center justify-between mb-4">
-                        <span className="text-2xl font-bold text-yellow-600">${product.price.toFixed(2)}</span>
+                        <span className="text-2xl font-bold text-yellow-600">${Number(product.price).toFixed(2)}</span>
                         {product.inStock && (
                           <button 
                             onClick={() => handleAddToCart(product)}
@@ -423,8 +484,9 @@ function App() {
                       </div>
                     </div>
                   </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </section>
 
             {/* Cart drawer trigger handled by header */}
@@ -539,17 +601,17 @@ function App() {
                   {cartItems.map((item) => (
                     <div key={item.id} className="flex items-center justify-between border-b pb-4">
                       <div className="flex items-center space-x-4">
-                        <img src={item.image} alt={item.name} className="w-16 h-16 object-cover rounded-lg" loading="lazy" />
+                        <img src={item.product.image} alt={item.product.name} className="w-16 h-16 object-cover rounded-lg" loading="lazy" />
                         <div>
-                          <div className="font-semibold text-gray-900">{item.name}</div>
-                          <div className="text-yellow-600">${item.price.toFixed(2)}</div>
+                          <div className="font-semibold text-gray-900">{item.product.name}</div>
+                          <div className="text-yellow-600">${Number(item.product.price).toFixed(2)}</div>
                         </div>
                       </div>
                       <div className="flex items-center space-x-2">
-                        <button onClick={() => updateQuantity(item.id, item.quantity - 1)} className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center hover:bg-gray-300" aria-label="Disminuir cantidad">-</button>
+                        <button onClick={() => handleUpdateQuantity(item.id, item.quantity - 1)} className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center hover:bg-gray-300" aria-label="Disminuir cantidad">-</button>
                         <span className="w-8 text-center">{item.quantity}</span>
-                        <button onClick={() => updateQuantity(item.id, item.quantity + 1)} className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center hover:bg-gray-300" aria-label="Aumentar cantidad">+</button>
-                        <button onClick={() => removeFromCart(item.id)} className="p-1 text-red-500 hover:text-red-700" aria-label="Eliminar del carrito"><X size={16} /></button>
+                        <button onClick={() => handleUpdateQuantity(item.id, item.quantity + 1)} className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center hover:bg-gray-300" aria-label="Aumentar cantidad">+</button>
+                        <button onClick={() => handleRemoveFromCart(item.id)} className="p-1 text-red-500 hover:text-red-700" aria-label="Eliminar del carrito"><X size={16} /></button>
                       </div>
                     </div>
                   ))}
@@ -625,7 +687,44 @@ function App() {
           </div>
         </div>
       </footer>
+
+      {/* Modals */}
+      <LoginModal
+        isOpen={showLoginModal}
+        onClose={() => setShowLoginModal(false)}
+        onSwitchToRegister={() => {
+          setShowLoginModal(false);
+          setShowRegisterModal(true);
+        }}
+      />
+
+      <RegisterModal
+        isOpen={showRegisterModal}
+        onClose={() => setShowRegisterModal(false)}
+        onSwitchToLogin={() => {
+          setShowRegisterModal(false);
+          setShowLoginModal(true);
+        }}
+      />
+
+      {/* Notification */}
+      <Notification
+        message={notification.message}
+        type={notification.type}
+        isVisible={notification.show}
+        onClose={hideNotification}
+      />
     </div>
+  )
+}
+
+function App() {
+  return (
+    <AuthProvider>
+      <CartProvider>
+        <AppContent />
+      </CartProvider>
+    </AuthProvider>
   )
 }
 
