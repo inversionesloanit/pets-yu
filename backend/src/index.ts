@@ -87,7 +87,7 @@ app.use('/api/categories', categoryRoutes);
 app.use('/api/cart', cartRoutes);
 app.use('/api/orders', strictLimiter.middleware(), orderRoutes);
 app.use('/api/testimonials', testimonialRoutes);
-app.use('/admin', strictLimiter.middleware(), adminRoutes);
+app.use('/admin', adminRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

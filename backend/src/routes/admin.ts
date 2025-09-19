@@ -18,7 +18,7 @@ router.get('/test', (req, res) => {
 
 // Serve admin panel
 router.get('/', (req, res) => {
-  const filePath = path.join(__dirname, '../../../public/admin/index.html');
+  const filePath = path.join(__dirname, '../../public/admin/index.html');
   console.log('Attempting to serve admin panel from:', filePath);
   console.log('__dirname:', __dirname);
   
@@ -31,7 +31,7 @@ router.get('/', (req, res) => {
 });
 
 // Serve static files for admin panel
-router.use('/static', require('express').static(path.join(__dirname, '../../../public/admin')));
+router.use('/static', require('express').static(path.join(__dirname, '../../public/admin')));
 
 // Admin login endpoint
 router.post('/login', async (req, res) => {
@@ -77,7 +77,7 @@ router.post('/login', async (req, res) => {
 });
 
 // Serve uploaded images (public)
-router.use('/uploads', require('express').static(path.join(__dirname, '../../../public/uploads')));
+router.use('/uploads', require('express').static(path.join(__dirname, '../../public/uploads')));
 
 // Protected admin routes (require authentication)
 router.use(authenticateToken);
