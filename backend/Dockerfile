@@ -18,6 +18,10 @@ RUN npm ci && npm cache clean --force
 # Copy source code
 COPY . .
 
+# Ensure public directory exists and copy it explicitly
+RUN mkdir -p public
+COPY public ./public
+
 # Generate Prisma client
 RUN npx prisma generate
 
