@@ -62,6 +62,39 @@ router.get('/users', async (req, res) => {
   }
 });
 
+// Test password for specific user
+router.post('/test-password', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    console.log('Testing password for:', email);
+    
+    const user = await prisma.user.findUnique({
+      where: { email }
+    });
+    
+    if (!user) {
+      return res.json({ success: false, error: 'User not found' });
+    }
+    
+    const bcrypt = require('bcryptjs');
+    const isValidPassword = await bcrypt.compare(password, user.password);
+    
+    res.json({
+      success: true,
+      user: {
+        id: user.id,
+        email: user.email,
+        role: user.role
+      },
+      passwordValid: isValidPassword,
+      passwordHash: user.password.substring(0, 20) + '...'
+    });
+  } catch (error) {
+    console.error('Error testing password:', error);
+    res.status(500).json({ error: 'Failed to test password', details: error.message });
+  }
+});
+
 // Serve admin panel
 router.get('/', (req, res) => {
   const filePath = path.join(__dirname, '../../public/admin/index.html');
