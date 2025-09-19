@@ -62,11 +62,12 @@ app.use(morgan('combined'));
 // Body parsing with size limits
 app.use(express.json({ 
   limit: '10mb',
-  verify: (req, res, buf) => {
+  verify: (req, _res, buf) => {
     try {
       JSON.parse(buf.toString());
     } catch (e) {
-      res.status(400).json({ error: 'Invalid JSON' });
+      // Throwing here lets the body-parser surface a 400 Bad Request
+      // and our global error handler can format the response.
       throw new Error('Invalid JSON');
     }
   }
