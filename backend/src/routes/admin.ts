@@ -38,6 +38,30 @@ router.get('/test-static', (req, res) => {
   }
 });
 
+// List all users (for debugging)
+router.get('/users', async (req, res) => {
+  try {
+    const users = await prisma.user.findMany({
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        createdAt: true
+      }
+    });
+    
+    res.json({
+      success: true,
+      users,
+      count: users.length
+    });
+  } catch (error) {
+    console.error('Error fetching users:', error);
+    res.status(500).json({ error: 'Failed to fetch users', details: error.message });
+  }
+});
+
 // Serve admin panel
 router.get('/', (req, res) => {
   const filePath = path.join(__dirname, '../../public/admin/index.html');
@@ -70,21 +94,34 @@ router.post('/login', async (req, res) => {
     console.log('Admin login attempt:', req.body);
     const { email, password } = req.body;
     
+    console.log('Looking for user with email:', email);
     const user = await prisma.user.findUnique({
       where: { email }
     });
+    
+    console.log('User found:', user ? { id: user.id, email: user.email, role: user.role } : 'No user found');
 
-    if (!user || user.role !== 'ADMIN') {
+    if (!user) {
+      console.log('No user found with email:', email);
       return res.status(401).json({ error: 'Invalid admin credentials' });
     }
 
+    if (user.role !== 'ADMIN') {
+      console.log('User is not admin, role:', user.role);
+      return res.status(401).json({ error: 'Invalid admin credentials' });
+    }
+
+    console.log('User is admin, checking password...');
     const bcrypt = require('bcryptjs');
     const isValidPassword = await bcrypt.compare(password, user.password);
+    console.log('Password valid:', isValidPassword);
 
     if (!isValidPassword) {
+      console.log('Invalid password for user:', email);
       return res.status(401).json({ error: 'Invalid admin credentials' });
     }
 
+    console.log('Generating JWT token...');
     const jwt = require('jsonwebtoken');
     const token = jwt.sign(
       { userId: user.id },
@@ -92,6 +129,7 @@ router.post('/login', async (req, res) => {
       { expiresIn: '24h' }
     );
 
+    console.log('Login successful for user:', email);
     res.json({
       success: true,
       token,
@@ -103,7 +141,7 @@ router.post('/login', async (req, res) => {
     });
   } catch (error) {
     console.error('Admin login error:', error);
-    res.status(500).json({ error: 'Login failed' });
+    res.status(500).json({ error: 'Login failed', details: error.message });
   }
 });
 
