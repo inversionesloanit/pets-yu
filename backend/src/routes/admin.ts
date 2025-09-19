@@ -6,6 +6,17 @@ import path from 'path';
 
 const router = Router();
 
+// Admin route logging middleware
+router.use((req, res, next) => {
+  console.log('=== ADMIN ROUTE ===');
+  console.log('Method:', req.method);
+  console.log('URL:', req.url);
+  console.log('Body:', req.body);
+  console.log('Headers:', req.headers);
+  console.log('=== END ADMIN ROUTE ===');
+  next();
+});
+
 // Test endpoint
 router.get('/test', (req, res) => {
   res.json({ 

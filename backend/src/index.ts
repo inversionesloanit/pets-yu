@@ -86,6 +86,18 @@ app.get('/api/health', (req, res) => {
   });
 });
 
+// Error logging middleware (before error handler)
+app.use((error: any, req: any, res: any, next: any) => {
+  console.error('=== UNHANDLED ERROR ===');
+  console.error('URL:', req.url);
+  console.error('Method:', req.method);
+  console.error('Error type:', error.constructor.name);
+  console.error('Error message:', error.message);
+  console.error('Error stack:', error.stack);
+  console.error('=== END UNHANDLED ERROR ===');
+  next(error);
+});
+
 // Error handling middleware (must be last)
 app.use(notFoundHandler);
 app.use(errorHandler);
