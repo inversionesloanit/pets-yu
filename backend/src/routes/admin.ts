@@ -16,6 +16,28 @@ router.get('/test', (req, res) => {
   });
 });
 
+// Test static files
+router.get('/test-static', (req, res) => {
+  const adminJsPath = path.join(__dirname, '../../public/admin/admin.js');
+  const fs = require('fs');
+  
+  try {
+    const exists = fs.existsSync(adminJsPath);
+    res.json({
+      success: true,
+      adminJsPath,
+      exists,
+      files: fs.readdirSync(path.join(__dirname, '../../public/admin'))
+    });
+  } catch (error) {
+    res.json({
+      success: false,
+      error: error.message,
+      adminJsPath
+    });
+  }
+});
+
 // Serve admin panel
 router.get('/', (req, res) => {
   const filePath = path.join(__dirname, '../../public/admin/index.html');
@@ -32,6 +54,15 @@ router.get('/', (req, res) => {
 
 // Serve static files for admin panel
 router.use('/static', require('express').static(path.join(__dirname, '../../public/admin')));
+
+// Serve admin.js directly
+router.get('/admin.js', (req, res) => {
+  res.sendFile(path.join(__dirname, '../../public/admin/admin.js'), {
+    headers: {
+      'Content-Type': 'application/javascript'
+    }
+  });
+});
 
 // Admin login endpoint
 router.post('/login', async (req, res) => {
