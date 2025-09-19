@@ -124,6 +124,7 @@ router.get('/admin.js', (req, res) => {
 // Admin login endpoint
 router.post('/login', async (req, res) => {
   try {
+    console.log('=== ADMIN LOGIN START ===');
     console.log('Admin login attempt:', req.body);
     const { email, password } = req.body;
     
@@ -155,6 +156,9 @@ router.post('/login', async (req, res) => {
     }
 
     console.log('Generating JWT token...');
+    console.log('JWT_SECRET exists:', !!process.env.JWT_SECRET);
+    console.log('JWT_SECRET length:', process.env.JWT_SECRET ? process.env.JWT_SECRET.length : 0);
+    
     const jwt = require('jsonwebtoken');
     const token = jwt.sign(
       { userId: user.id },
@@ -162,7 +166,10 @@ router.post('/login', async (req, res) => {
       { expiresIn: '24h' }
     );
 
+    console.log('Token generated successfully, length:', token.length);
     console.log('Login successful for user:', email);
+    console.log('=== ADMIN LOGIN SUCCESS ===');
+    
     res.json({
       success: true,
       token,
@@ -173,7 +180,11 @@ router.post('/login', async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Admin login error:', error);
+    console.error('=== ADMIN LOGIN ERROR ===');
+    console.error('Error type:', error.constructor.name);
+    console.error('Error message:', error.message);
+    console.error('Error stack:', error.stack);
+    console.error('=== END ADMIN LOGIN ERROR ===');
     res.status(500).json({ error: 'Login failed', details: error.message });
   }
 });
