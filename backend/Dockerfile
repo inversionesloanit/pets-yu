@@ -52,7 +52,6 @@ RUN groupadd -g 1001 nodejs || true \
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/package*.json ./
 COPY --from=build /app/prisma ./prisma
-COPY --from=build /app/public ./public
 
 # Install only production dependencies
 RUN npm ci --omit=dev && npm cache clean --force \
