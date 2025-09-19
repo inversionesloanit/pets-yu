@@ -29,7 +29,8 @@ export const register = async (req: Request, res: Response) => {
         phone,
         address,
         city,
-        country
+        country,
+        role: req.body.role || 'CUSTOMER' // Allow role to be specified
       },
       select: {
         id: true,
