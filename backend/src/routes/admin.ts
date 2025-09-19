@@ -56,7 +56,10 @@ router.post('/login', async (req, res) => {
   }
 });
 
-// Protected admin routes
+// Serve uploaded images (public)
+router.use('/uploads', require('express').static(path.join(__dirname, '../../../public/uploads')));
+
+// Protected admin routes (require authentication)
 router.use(authenticateToken);
 router.use(requireRole(['ADMIN']));
 
@@ -115,9 +118,6 @@ router.post('/upload', uploadSingle, (req, res) => {
     res.status(500).json({ error: 'Upload failed' });
   }
 });
-
-// Serve uploaded images
-router.use('/uploads', require('express').static(path.join(__dirname, '../../../public/uploads')));
 
 export default router;
 
