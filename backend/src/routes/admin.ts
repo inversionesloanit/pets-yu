@@ -8,7 +8,16 @@ const router = Router();
 
 // Serve admin panel
 router.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, '../../../public/admin/index.html'));
+  const filePath = path.join(__dirname, '../../../public/admin/index.html');
+  console.log('Attempting to serve admin panel from:', filePath);
+  console.log('__dirname:', __dirname);
+  
+  res.sendFile(filePath, (err) => {
+    if (err) {
+      console.error('Error serving admin panel:', err);
+      res.status(500).json({ error: 'Failed to serve admin panel', details: err.message });
+    }
+  });
 });
 
 // Serve static files for admin panel
@@ -17,6 +26,7 @@ router.use('/static', require('express').static(path.join(__dirname, '../../../p
 // Admin login endpoint
 router.post('/login', async (req, res) => {
   try {
+    console.log('Admin login attempt:', req.body);
     const { email, password } = req.body;
     
     const user = await prisma.user.findUnique({
