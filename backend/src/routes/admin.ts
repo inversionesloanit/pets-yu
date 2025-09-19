@@ -6,6 +6,16 @@ import path from 'path';
 
 const router = Router();
 
+// Test endpoint
+router.get('/test', (req, res) => {
+  res.json({ 
+    success: true, 
+    message: 'Admin routes are working',
+    timestamp: new Date().toISOString(),
+    dirname: __dirname
+  });
+});
+
 // Serve admin panel
 router.get('/', (req, res) => {
   const filePath = path.join(__dirname, '../../../public/admin/index.html');
