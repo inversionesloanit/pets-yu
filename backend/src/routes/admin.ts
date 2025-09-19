@@ -8,11 +8,11 @@ const router = Router();
 
 // Serve admin panel
 router.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, '../../public/admin/index.html'));
+  res.sendFile(path.join(__dirname, '../../../public/admin/index.html'));
 });
 
 // Serve static files for admin panel
-router.use('/static', require('express').static(path.join(__dirname, '../../public/admin')));
+router.use('/static', require('express').static(path.join(__dirname, '../../../public/admin')));
 
 // Admin login endpoint
 router.post('/login', async (req, res) => {
@@ -117,7 +117,7 @@ router.post('/upload', uploadSingle, (req, res) => {
 });
 
 // Serve uploaded images
-router.use('/uploads', require('express').static(path.join(__dirname, '../../public/uploads')));
+router.use('/uploads', require('express').static(path.join(__dirname, '../../../public/uploads')));
 
 export default router;
 
