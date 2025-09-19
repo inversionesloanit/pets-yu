@@ -2,8 +2,11 @@
 let authToken = localStorage.getItem('adminToken');
 let currentEditingId = null;
 
+console.log('Admin.js loaded, authToken:', authToken ? 'present' : 'not present');
+
 // Initialize app
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM loaded, initializing admin app');
     if (authToken) {
         showAdminDashboard();
         loadDashboardStats();
@@ -15,9 +18,12 @@ document.addEventListener('DOMContentLoaded', function() {
 // Login functionality
 document.getElementById('loginForm').addEventListener('submit', async function(e) {
     e.preventDefault();
+    console.log('Login form submitted');
     
     const email = document.getElementById('email').value;
     const password = document.getElementById('password').value;
+    
+    console.log('Login attempt:', { email, password: '***' });
     
     try {
         const response = await fetch('/admin/login', {
@@ -28,7 +34,9 @@ document.getElementById('loginForm').addEventListener('submit', async function(e
             body: JSON.stringify({ email, password })
         });
         
+        console.log('Login response status:', response.status);
         const data = await response.json();
+        console.log('Login response data:', data);
         
         if (data.success) {
             authToken = data.token;
@@ -36,11 +44,11 @@ document.getElementById('loginForm').addEventListener('submit', async function(e
             showAdminDashboard();
             loadDashboardStats();
         } else {
-            alert('Credenciales inválidas');
+            alert('Credenciales inválidas: ' + (data.error || 'Error desconocido'));
         }
     } catch (error) {
         console.error('Login error:', error);
-        alert('Error al iniciar sesión');
+        alert('Error al iniciar sesión: ' + error.message);
     }
 });
 
