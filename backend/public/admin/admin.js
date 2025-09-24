@@ -263,8 +263,28 @@ document.getElementById('productFormElement').addEventListener('submit', async f
             rating: document.getElementById('productRating').value ? parseFloat(document.getElementById('productRating').value) : undefined,
             inStock: !!document.getElementById('productInStock').checked
         };
+        
+        // Validar campos requeridos
+        if (!payload.name || payload.name.length < 2) {
+            throw new Error('El nombre debe tener al menos 2 caracteres');
+        }
+        if (!payload.categoryId) {
+            throw new Error('Debe seleccionar una categoría');
+        }
+        if (isNaN(payload.price) || payload.price <= 0) {
+            throw new Error('El precio debe ser un número válido mayor a 0');
+        }
+        
+        // Para crear producto, image es requerido
+        if (!currentEditingId && !uploadedImageUrl) {
+            throw new Error('Debe subir una imagen para crear un producto');
+        }
+        
         if (uploadedImageUrl) {
             payload.image = uploadedImageUrl; // backend espera URL
+        } else if (!currentEditingId) {
+            // Si es creación y no hay imagen, usar placeholder
+            payload.image = 'https://placehold.co/300x300/FFD700/FFFFFF?text=Product+Image';
         }
 
         // 3) Crear o actualizar vía JSON
