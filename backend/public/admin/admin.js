@@ -580,7 +580,28 @@ async function deleteTestimonial(id) {
 function editProduct(id) {
     currentEditingId = id;
     showProductForm();
-    // TODO: Load product data into form
+
+    // Cargar datos del producto en el formulario
+    fetch(`/api/products/${id}`)
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                const p = data.data;
+                document.getElementById('productName').value = p.name || '';
+                document.getElementById('productPrice').value = p.price || '';
+                document.getElementById('productCategory').value = p.category?.id || '';
+                document.getElementById('productRating').value = p.rating || '';
+                document.getElementById('productDescription').value = p.description || '';
+                document.getElementById('productInStock').checked = !!p.inStock;
+                document.getElementById('imagePreview').innerHTML = p.image ? `<img src="${p.image}" class="image-preview rounded">` : '';
+            } else {
+                alert('No se pudo cargar el producto');
+            }
+        })
+        .catch(err => {
+            console.error('Error fetching product:', err);
+            alert('Error cargando producto');
+        });
 }
 
 function editCategory(id) {
