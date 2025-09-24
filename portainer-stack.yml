@@ -31,7 +31,9 @@ services:
 
   # Backend API
   backend:
-    image: pets-yu-backend:latest
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
     container_name: pets-yu-api
     environment:
       DATABASE_URL: "postgresql://petsyu:${POSTGRES_PASSWORD:-password}@postgres:5432/petsyu_db?schema=public"
@@ -72,7 +74,9 @@ services:
 
   # Frontend
   frontend:
-    image: pets-yu-frontend:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
     container_name: pets-yu-web
     environment:
       VITE_API_URL: "${API_URL:-http://localhost:3001/api}"
