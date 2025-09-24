@@ -228,51 +228,73 @@ function hideProductForm() {
     currentEditingId = null;
 }
 
+// Subida y guardado de producto cumpliendo validaciones backend
 document.getElementById('productFormElement').addEventListener('submit', async function(e) {
     e.preventDefault();
     
-    const formData = new FormData();
-    formData.append('name', document.getElementById('productName').value);
-    formData.append('price', document.getElementById('productPrice').value);
-    formData.append('categoryId', document.getElementById('productCategory').value);
-    formData.append('description', document.getElementById('productDescription').value);
-    formData.append('rating', document.getElementById('productRating').value);
-    formData.append('inStock', document.getElementById('productInStock').checked);
-    
-    const imageFile = document.getElementById('productImage').files[0];
-    if (imageFile) {
-        formData.append('image', imageFile);
-    }
-    
     try {
+        // 1) Si hay imagen, subirla a /admin/upload para obtener URL pública
+        let uploadedImageUrl = undefined;
+        const imageFile = document.getElementById('productImage').files[0];
+        if (imageFile) {
+            const uploadForm = new FormData();
+            uploadForm.append('image', imageFile);
+
+            const uploadResp = await fetch('/admin/upload', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${authToken}`
+                },
+                body: uploadForm
+            });
+            const uploadData = await uploadResp.json();
+            if (!uploadResp.ok || !uploadData.success) {
+                throw new Error(uploadData.error || 'Error al subir imagen');
+            }
+            uploadedImageUrl = uploadData.data.imageUrl;
+        }
+
+        // 2) Armar payload JSON conforme a validaciones
+        const payload = {
+            name: document.getElementById('productName').value,
+            price: parseFloat(document.getElementById('productPrice').value),
+            categoryId: document.getElementById('productCategory').value,
+            description: document.getElementById('productDescription').value || undefined,
+            rating: document.getElementById('productRating').value ? parseFloat(document.getElementById('productRating').value) : undefined,
+            inStock: !!document.getElementById('productInStock').checked
+        };
+        if (uploadedImageUrl) {
+            payload.image = uploadedImageUrl; // backend espera URL
+        }
+
+        // 3) Crear o actualizar vía JSON
         let url = '/api/products';
         let method = 'POST';
-        
         if (currentEditingId) {
             url += `/${currentEditingId}`;
             method = 'PUT';
         }
-        
+
         const response = await fetch(url, {
-            method: method,
+            method,
             headers: {
+                'Content-Type': 'application/json',
                 'Authorization': `Bearer ${authToken}`
             },
-            body: formData
+            body: JSON.stringify(payload)
         });
-        
+
         const data = await response.json();
-        
         if (data.success) {
             alert('Producto guardado exitosamente');
             hideProductForm();
             loadProducts();
         } else {
-            alert('Error al guardar producto: ' + (data.error || 'Error desconocido'));
+            alert('Error al guardar producto: ' + (data.error || 'Validation failed'));
         }
     } catch (error) {
         console.error('Error saving product:', error);
-        alert('Error al guardar producto');
+        alert('Error al guardar producto: ' + error.message);
     }
 });
 
