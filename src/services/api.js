@@ -1,4 +1,8 @@
-const API_BASE_URL = import.meta.env.VITE_API_URL || (typeof window !== 'undefined' ? '/api' : 'http://localhost:3001/api');
+// Determine API base URL with safer defaults for production
+const envApiUrl = import.meta.env.VITE_API_URL;
+const isBrowser = typeof window !== 'undefined';
+const isLocalEnvUrl = typeof envApiUrl === 'string' && /^(https?:\/\/)?(localhost|127\.|0\.0\.0\.0)/i.test(envApiUrl);
+const API_BASE_URL = (!envApiUrl || isLocalEnvUrl) ? (isBrowser ? '/api' : 'http://localhost:3001/api') : envApiUrl;
 
 class ApiService {
   constructor() {
@@ -42,6 +46,11 @@ class ApiService {
         throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
       }
 
+      const contentType = response.headers.get('content-type') || '';
+      if (!contentType.includes('application/json')) {
+        const text = await response.text();
+        throw new Error(`Respuesta no JSON desde ${url}. content-type: ${contentType}. Cuerpo: ${text.slice(0, 120)}...`);
+      }
       return await response.json();
     } catch (error) {
       console.error('API Request failed:', error);
