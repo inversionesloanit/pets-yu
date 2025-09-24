@@ -582,9 +582,17 @@ function editProduct(id) {
     showProductForm();
 
     // Cargar datos del producto en el formulario
-    fetch(`/api/products/${id}`)
-        .then(res => res.json())
+    fetch(`/api/products/${id}`, {
+        headers: {
+            'Authorization': `Bearer ${authToken}`
+        }
+    })
+        .then(res => {
+            console.log('Response status:', res.status);
+            return res.json();
+        })
         .then(data => {
+            console.log('Product data:', data);
             if (data.success) {
                 const p = data.data;
                 document.getElementById('productName').value = p.name || '';
@@ -595,12 +603,12 @@ function editProduct(id) {
                 document.getElementById('productInStock').checked = !!p.inStock;
                 document.getElementById('imagePreview').innerHTML = p.image ? `<img src="${p.image}" class="image-preview rounded">` : '';
             } else {
-                alert('No se pudo cargar el producto');
+                alert('No se pudo cargar el producto: ' + (data.error || 'Error desconocido'));
             }
         })
         .catch(err => {
             console.error('Error fetching product:', err);
-            alert('Error cargando producto');
+            alert('Error cargando producto: ' + err.message);
         });
 }
 
