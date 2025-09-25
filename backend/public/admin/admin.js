@@ -256,13 +256,19 @@ document.getElementById('productFormElement').addEventListener('submit', async f
 
         // 2) Armar payload JSON conforme a validaciones
         const payload = {
-            name: document.getElementById('productName').value,
+            name: document.getElementById('productName').value.trim(),
             price: parseFloat(document.getElementById('productPrice').value),
-            categoryId: document.getElementById('productCategory').value,
-            description: document.getElementById('productDescription').value || undefined,
-            rating: document.getElementById('productRating').value ? parseFloat(document.getElementById('productRating').value) : undefined,
+            categoryId: document.getElementById('productCategory').value.trim(),
             inStock: !!document.getElementById('productInStock').checked
         };
+        const descVal = document.getElementById('productDescription').value;
+        if (descVal && descVal.trim().length > 0) {
+            payload.description = descVal.trim();
+        }
+        const ratingVal = document.getElementById('productRating').value;
+        if (ratingVal !== '' && !isNaN(parseFloat(ratingVal))) {
+            payload.rating = parseFloat(ratingVal);
+        }
         
         // Validar campos requeridos
         if (!payload.name || payload.name.length < 2) {
@@ -305,12 +311,14 @@ document.getElementById('productFormElement').addEventListener('submit', async f
         });
 
         const data = await response.json();
+        console.log('Save product response:', data);
         if (data.success) {
             alert('Producto guardado exitosamente');
             hideProductForm();
             loadProducts();
         } else {
-            alert('Error al guardar producto: ' + (data.error || 'Validation failed'));
+            const details = data.details ? `\nDetalles: ${JSON.stringify(data.details)}` : '';
+            alert('Error al guardar producto: ' + (data.error || 'Validation failed') + details);
         }
     } catch (error) {
         console.error('Error saving product:', error);
