@@ -16,6 +16,14 @@ export const sanitizeInput = (req: Request, res: Response, next: NextFunction) =
       const sanitized: any = {};
       for (const key in obj) {
         if (obj.hasOwnProperty(key)) {
+          // Do NOT escape URLs or upload paths for specific fields
+          if (key === 'image') {
+            const val = obj[key];
+            if (typeof val === 'string') {
+              sanitized[key] = val.trim();
+              continue;
+            }
+          }
           sanitized[key] = sanitizeObject(obj[key]);
         }
       }
