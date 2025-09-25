@@ -52,6 +52,7 @@ model Product {
   image       String
   categoryId  String
   inStock     Boolean  @default(true)
+  stock       Int      @default(0)
   rating      Float    @default(0)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -67,6 +68,21 @@ model Product {
   @@index([name])
   @@index([createdAt])
   @@map("products")
+}
+
+model InventoryMovement {
+  id          String             @id @default(cuid())
+  productId   String
+  type        InventoryType
+  quantity    Int
+  note        String?
+  createdAt   DateTime           @default(now())
+
+  product     Product            @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+  @@index([createdAt])
+  @@map("inventory_movements")
 }
 
 model CartItem {
@@ -140,4 +156,10 @@ enum OrderStatus {
   SHIPPED
   DELIVERED
   CANCELLED
+}
+
+enum InventoryType {
+  IN
+  OUT
+  ADJUST
 }
