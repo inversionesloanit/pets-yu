@@ -37,7 +37,11 @@ export const validateCreateProduct = [
   validateTextLength('description', 0, 1000),
   validatePrice(),
   validateURL(),
-  validateUUID('categoryId'),
+  // Accept cuid/string IDs (not strictly UUID)
+  body('categoryId')
+    .isString()
+    .isLength({ min: 3, max: 100 })
+    .withMessage('Valid category ID required'),
   body('inStock').optional().isBoolean().withMessage('inStock must be boolean'),
   validateRating(),
   handleValidationErrors
@@ -48,7 +52,8 @@ export const validateUpdateProduct = [
   body('description').optional().trim().isLength({ max: 1000 }).withMessage('Description too long'),
   body('price').optional().isFloat({ min: 0, max: 999999.99 }).withMessage('Price must be a positive number'),
   body('image').optional().isURL().withMessage('Valid image URL required'),
-  body('categoryId').optional().isUUID().withMessage('Valid category ID required'),
+  // Accept cuid/string IDs (not strictly UUID)
+  body('categoryId').optional().isString().isLength({ min: 3, max: 100 }).withMessage('Valid category ID required'),
   body('inStock').optional().isBoolean().withMessage('inStock must be boolean'),
   body('rating').optional().isFloat({ min: 0, max: 5 }).withMessage('Rating must be 0-5'),
   handleValidationErrors
@@ -86,7 +91,8 @@ export const validateCreateTestimonial = [
 
 // Params validation
 export const validateId = [
-  param('id').isUUID().withMessage('Valid ID required'),
+  // Accept cuid/string IDs used by Prisma
+  param('id').isString().isLength({ min: 3, max: 100 }).withMessage('Valid ID required'),
   handleValidationErrors
 ];
 
