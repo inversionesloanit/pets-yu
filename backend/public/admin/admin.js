@@ -77,6 +77,10 @@ function showSection(sectionName) {
             loadProducts();
             loadCategories();
             break;
+        case 'inventory':
+            loadProductsForInventory();
+            loadInventory();
+            break;
         case 'categories':
             loadCategories();
             break;
@@ -235,6 +239,10 @@ document.getElementById('productFormElement').addEventListener('submit', async f
     try {
         // 1) Si hay imagen, subirla a /admin/upload para obtener URL pública
         let uploadedImageUrl = undefined;
+        const selectedFromGallery = document.getElementById('imagePreview')?.dataset?.selectedUrl;
+        if (selectedFromGallery) {
+            uploadedImageUrl = selectedFromGallery;
+        }
         const imageFile = document.getElementById('productImage').files[0];
         if (imageFile) {
             const uploadForm = new FormData();
@@ -338,6 +346,38 @@ document.getElementById('productImage').addEventListener('change', function(e) {
         reader.readAsDataURL(file);
     }
 });
+
+// Gallery helpers
+async function openGallery() {
+    try {
+        const res = await fetch('/admin/uploads/list');
+        const data = await res.json();
+        if (data.success) {
+            const grid = document.getElementById('galleryGrid');
+            if (!grid) return;
+            grid.innerHTML = '';
+            data.data.forEach(img => {
+                const btn = document.createElement('button');
+                btn.className = 'border rounded p-2 hover:bg-gray-50';
+                btn.innerHTML = `<img src="${img.url}" class="w-full h-28 object-cover rounded" /><div class="text-xs mt-1 truncate">${img.name}</div>`;
+                btn.onclick = () => {
+                    const preview = document.getElementById('imagePreview');
+                    preview.innerHTML = `<img src="${img.url}" class="image-preview rounded">`;
+                    preview.dataset.selectedUrl = img.url;
+                    closeGallery();
+                };
+                grid.appendChild(btn);
+            });
+            document.getElementById('galleryModal').classList.remove('hidden');
+        }
+    } catch (e) {
+        console.error('Error loading gallery:', e);
+        alert('No se pudo cargar la galería');
+    }
+}
+function closeGallery() {
+    document.getElementById('galleryModal').classList.add('hidden');
+}
 
 // Category form functions
 function showCategoryForm() {
@@ -664,4 +704,84 @@ function updateOrderStatus(id) {
         alert(`Actualizando pedido ${id} a ${newStatus}`);
     }
 }
+
+// Inventory UI functions
+async function loadProductsForInventory() {
+    try {
+        const res = await fetch('/api/products?limit=100');
+        const data = await res.json();
+        const select = document.getElementById('inventoryProduct');
+        if (!select) return;
+        select.innerHTML = '';
+        if (data.success) {
+            data.data.products.forEach(p => {
+                const opt = document.createElement('option');
+                opt.value = p.id;
+                opt.textContent = `${p.name}`;
+                select.appendChild(opt);
+            });
+        }
+    } catch (e) {
+        console.error('Error loading products for inventory', e);
+    }
+}
+
+async function loadInventory() {
+    try {
+        const res = await fetch('/api/inventory/movements', {
+            headers: { 'Authorization': `Bearer ${authToken}` }
+        });
+        const data = await res.json();
+        const tbody = document.getElementById('inventoryTableBody');
+        if (!tbody) return;
+        tbody.innerHTML = '';
+        if (data.success) {
+            data.data.movements.forEach(m => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${new Date(m.createdAt).toLocaleString()}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${m.product.name}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm ${m.type==='IN'?'text-green-600':m.type==='OUT'?'text-red-600':'text-gray-700'}">${m.type}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${m.quantity}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">${m.note || ''}</td>`;
+                tbody.appendChild(tr);
+            });
+        }
+    } catch (e) {
+        console.error('Error loading inventory', e);
+    }
+}
+
+document.getElementById('inventoryForm')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    try {
+        const payload = {
+            productId: document.getElementById('inventoryProduct').value,
+            type: document.getElementById('inventoryType').value,
+            quantity: parseInt(document.getElementById('inventoryQty').value, 10),
+            note: document.getElementById('inventoryNote').value
+        };
+        const res = await fetch('/api/inventory/movements', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${authToken}`
+            },
+            body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (data.success) {
+            alert('Movimiento registrado');
+            loadInventory();
+            loadProducts();
+            const form = document.getElementById('inventoryForm');
+            if (form && form.reset) form.reset();
+        } else {
+            alert('Error: ' + (data.error || 'No se pudo registrar'));
+        }
+    } catch (err) {
+        console.error('Error creating movement', err);
+        alert('Error registrando movimiento');
+    }
+});
 
