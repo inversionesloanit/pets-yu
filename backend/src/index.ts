@@ -17,6 +17,7 @@ import cartRoutes from './routes/cart';
 import orderRoutes from './routes/orders';
 import testimonialRoutes from './routes/testimonials';
 import adminRoutes from './routes/admin';
+import inventoryRoutes from './routes/inventory';
 
 // Load environment variables
 dotenv.config();
@@ -76,6 +77,7 @@ app.use('/api/cart', cartRoutes);
 app.use('/api/orders', strictLimiter.middleware(), orderRoutes);
 app.use('/api/testimonials', testimonialRoutes);
 app.use('/admin', adminRoutes);
+app.use('/api/inventory', inventoryRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

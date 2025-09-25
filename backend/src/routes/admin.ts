@@ -132,6 +132,21 @@ router.get('/admin.js', (req, res) => {
   });
 });
 
+// List uploaded files (simple gallery)
+router.get('/uploads/list', (req, res) => {
+  try {
+    const fs = require('fs');
+    const uploadsDir = path.join(__dirname, '../../public/uploads');
+    const files: string[] = fs.existsSync(uploadsDir) ? fs.readdirSync(uploadsDir) : [];
+    const images = files
+      .filter((f: string) => /(png|jpg|jpeg|gif|webp)$/i.test(f))
+      .map((f: string) => ({ name: f, url: `/uploads/${f}` }));
+    res.json({ success: true, data: images });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // Admin login endpoint
 router.post('/login', async (req, res) => {
   try {
