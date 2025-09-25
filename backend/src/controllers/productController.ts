@@ -188,14 +188,20 @@ export const updateProduct = async (req: Request, res: Response) => {
       }
     }
 
+    // Normalize image path: allow '/uploads/...' to be stored as is
+    const normalizedData: any = {
+      ...updateData,
+      price: updateData.price !== undefined ? Number(updateData.price) : undefined,
+      rating: updateData.rating !== undefined ? Number(updateData.rating) : undefined,
+    };
+
+    if (typeof normalizedData.image === 'string') {
+      normalizedData.image = normalizedData.image.trim();
+    }
+
     const product = await prisma.product.update({
       where: { id },
-      data: {
-        ...updateData,
-        // Ensure numeric fields are properly typed when coming as strings
-        price: updateData.price !== undefined ? Number(updateData.price) as any : undefined,
-        rating: updateData.rating !== undefined ? Number(updateData.rating) as any : undefined
-      },
+      data: normalizedData,
       include: {
         category: {
           select: {

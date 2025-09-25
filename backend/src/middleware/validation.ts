@@ -51,7 +51,12 @@ export const validateUpdateProduct = [
   body('name').optional().trim().isLength({ min: 2, max: 200 }).withMessage('Product name must be 2-200 characters'),
   body('description').optional().trim().isLength({ max: 1000 }).withMessage('Description too long'),
   body('price').optional().isFloat({ min: 0, max: 999999.99 }).withMessage('Price must be a positive number'),
-  body('image').optional().isURL().withMessage('Valid image URL required'),
+  body('image').optional().custom((value) => {
+    if (typeof value !== 'string') return false;
+    if (value.startsWith('http://') || value.startsWith('https://')) return true;
+    if (value.startsWith('/uploads/')) return true;
+    return false;
+  }).withMessage('Valid image URL required (http(s) or /uploads/...)'),
   // Accept cuid/string IDs (not strictly UUID)
   body('categoryId').optional().isString().isLength({ min: 3, max: 100 }).withMessage('Valid category ID required'),
   body('inStock').optional().isBoolean().withMessage('inStock must be boolean'),
