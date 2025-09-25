@@ -136,11 +136,11 @@ export const createProduct = async (req: Request, res: Response) => {
       data: {
         name,
         description,
-        price,
+        price: Number(price) as any,
         image,
         categoryId,
         inStock,
-        rating
+        rating: Number(rating) as any
       },
       include: {
         category: {
@@ -190,7 +190,12 @@ export const updateProduct = async (req: Request, res: Response) => {
 
     const product = await prisma.product.update({
       where: { id },
-      data: updateData,
+      data: {
+        ...updateData,
+        // Ensure numeric fields are properly typed when coming as strings
+        price: updateData.price !== undefined ? Number(updateData.price) as any : undefined,
+        rating: updateData.rating !== undefined ? Number(updateData.rating) as any : undefined
+      },
       include: {
         category: {
           select: {

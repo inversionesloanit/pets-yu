@@ -59,8 +59,14 @@ export const validatePhone = () => {
 // Validate URL
 export const validateURL = () => {
   return body('image')
-    .isURL({ protocols: ['http', 'https'] })
-    .withMessage('Valid URL required');
+    .custom((value) => {
+      if (typeof value !== 'string') return false;
+      // Accept absolute http/https URLs OR server-relative upload paths
+      if (value.startsWith('http://') || value.startsWith('https://')) return true;
+      if (value.startsWith('/uploads/')) return true;
+      return false;
+    })
+    .withMessage('Valid image URL required (http(s) or /uploads/...)');
 };
 
 // Validate UUID
