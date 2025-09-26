@@ -1,0 +1,74 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: pets-yu-db
+    environment:
+      POSTGRES_DB: petsyu_db
+      POSTGRES_USER: petsyu
+      POSTGRES_PASSWORD: password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U petsyu -d petsyu_db"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  # Backend API
+  backend:
+    build: 
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: pets-yu-api
+    environment:
+      - DATABASE_URL=postgresql://petsyu:password@postgres:5432/petsyu_db
+      - JWT_SECRET=your-super-secret-jwt-key-change-in-production
+      - JWT_EXPIRES_IN=7d
+      - PORT=3001
+      - NODE_ENV=production
+      - PRISMA_GENERATE_SKIP_ENV_CHECK=1
+      - PRISMA_ENGINES_CHECKSUM_IGNORE_MISSING=1
+    ports:
+      - "3001:3001"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3001/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    volumes:
+      - backend_logs:/app/logs
+
+  # Frontend - Using pre-built image approach
+  frontend:
+    image: nginx:alpine
+    container_name: pets-yu-web
+    ports:
+      - "8090:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+    volumes:
+      - ./dist:/usr/share/nginx/html:ro
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+volumes:
+  postgres_data:
+  backend_logs:
