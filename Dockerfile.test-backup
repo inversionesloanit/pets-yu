@@ -1,19 +1,18 @@
-# Minimal test Dockerfile
+# Ultra simple test Dockerfile
 FROM node:18-alpine
 
 WORKDIR /app
 
-# Copy package files
-COPY package.json package-lock.json ./
+# Copy only essential files
+COPY package.json ./
+COPY package-lock.json ./
 
 # Install dependencies
 RUN npm ci
 
-# Copy minimal files only
-COPY src/App.minimal.jsx ./src/App.minimal.jsx
-COPY src/main.minimal.jsx ./src/main.minimal.jsx
-COPY src/index.css ./src/index.css
-COPY index.minimal.html ./index.html
+# Copy source files
+COPY src/ ./src/
+COPY index.html ./
 COPY vite.config.js ./
 COPY tailwind.config.js ./
 COPY postcss.config.js ./
