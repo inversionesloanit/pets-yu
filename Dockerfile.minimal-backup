@@ -1,4 +1,4 @@
-# Ultra basic Dockerfile without Tailwind
+# Minimal test Dockerfile
 FROM node:18-alpine
 
 WORKDIR /app
@@ -9,11 +9,14 @@ COPY package.json package-lock.json ./
 # Install dependencies
 RUN npm ci
 
-# Copy only basic files
-COPY src/App.basic.jsx ./src/App.basic.jsx
-COPY src/main.basic.jsx ./src/main.basic.jsx
-COPY index.basic.html ./index.html
-COPY vite.config.basic.js ./vite.config.js
+# Copy minimal files only
+COPY src/App.minimal.jsx ./src/App.minimal.jsx
+COPY src/main.minimal.jsx ./src/main.minimal.jsx
+COPY src/index.css ./src/index.css
+COPY index.minimal.html ./index.html
+COPY vite.config.js ./
+COPY tailwind.config.js ./
+COPY postcss.config.js ./
 
 # Set environment variables
 ENV VITE_API_URL=http://localhost:3001/api
