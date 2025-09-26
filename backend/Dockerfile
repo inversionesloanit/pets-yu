@@ -2,6 +2,8 @@
 FROM node:20-bullseye-slim AS build
 
 WORKDIR /app
+# Evitar que @prisma/client dispare generate en postinstall durante el build
+ENV PRISMA_SKIP_POSTINSTALL_GENERATE=1
 
 # Install build dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -12,14 +14,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY package.json package-lock.json ./
 COPY prisma ./prisma/
 
-# Install all dependencies (including dev) for build
-RUN npm ci && npm cache clean --force
+# Install all dependencies (including dev) for build - sin scripts de postinstall
+RUN npm ci --ignore-scripts && npm cache clean --force
 
 # Copy source code
 COPY . .
 
-# Generate Prisma client
-RUN npx prisma generate
+# Removed prisma generate during build to avoid failures in restricted builders
 
 # Verify installations and build
 RUN echo "Node version: $(node --version)"
@@ -38,6 +39,8 @@ RUN ls -la dist/
 FROM node:20-bullseye-slim AS production
 
 WORKDIR /app
+# Evitar generate en postinstall y chequeos estrictos durante runtime
+ENV PRISMA_SKIP_POSTINSTALL_GENERATE=1
 
 # Install dumb-init and openssl for Prisma engines
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -53,6 +56,10 @@ COPY --from=build /app/dist ./dist
 COPY --from=build /app/package*.json ./
 COPY --from=build /app/prisma ./prisma
 COPY --from=build /app/public ./public
+
+# Copy start script
+COPY start.sh ./
+RUN chmod +x start.sh
 
 # Install only production dependencies
 RUN npm ci --omit=dev && npm cache clean --force \
@@ -79,4 +86,4 @@ ENV NODE_OPTIONS="--max-old-space-size=512"
 
 # Start application with proper error handling
 ENTRYPOINT ["/usr/bin/dumb-init", "--"]
-CMD ["sh", "-c", "npx prisma db push && node prisma/seed.js || true && node dist/index.js"]
+CMD ["./start.sh"]

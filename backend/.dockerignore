@@ -11,3 +11,5 @@ coverage
 *.log
 dist
 .DS_Store
+# Keep start.sh for container startup
+!start.sh

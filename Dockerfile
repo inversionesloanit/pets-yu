@@ -10,7 +10,10 @@ RUN npm run build
 FROM node:20-alpine AS backend_static_build
 WORKDIR /app/backend
 COPY backend/package.json backend/package-lock.json ./
-RUN npm ci
+# Evitar que postinstall dispare prisma generate en este stage
+ENV PRISMA_SKIP_POSTINSTALL_GENERATE=1
+# Instalar dependencias sin ejecutar scripts de postinstall
+RUN npm ci --ignore-scripts
 COPY backend/public ./public/
 
 # Etapa 3: Runtime con Nginx
