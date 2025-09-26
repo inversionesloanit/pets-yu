@@ -4,6 +4,10 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci
 COPY . .
+# Configurar variables de entorno para el build de Vite
+ENV VITE_API_URL=http://localhost:3001/api
+ENV VITE_APP_NAME=Pets Yu
+ENV VITE_APP_VERSION=1.0.0
 RUN npm run build
 
 # Etapa 2: Build Backend (para copiar archivos estáticos)
