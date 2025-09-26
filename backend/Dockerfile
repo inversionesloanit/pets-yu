@@ -2,8 +2,9 @@
 FROM node:20-bullseye-slim AS build
 
 WORKDIR /app
-# Evitar que @prisma/client dispare generate en postinstall durante el build
+// Evitar que @prisma/client dispare generate en postinstall durante el build
 ENV PRISMA_SKIP_POSTINSTALL_GENERATE=1
+ENV PRISMA_GENERATE_SKIP_ENV_CHECK=1
 
 # Install build dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -20,7 +21,8 @@ RUN npm ci --ignore-scripts && npm cache clean --force
 # Copy source code
 COPY . .
 
-# Removed prisma generate during build to avoid failures in restricted builders
+# Generate Prisma client needed for TypeScript types during build
+RUN npx prisma generate
 
 # Verify installations and build
 RUN echo "Node version: $(node --version)"
