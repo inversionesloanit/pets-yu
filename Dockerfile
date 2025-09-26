@@ -4,7 +4,7 @@ WORKDIR /app
 
 # Instalar dependencias
 COPY package.json package-lock.json ./
-RUN npm ci --only=production=false
+RUN npm ci
 
 # Copiar código fuente
 COPY . .
@@ -21,9 +21,6 @@ RUN npm run build
 FROM node:20-alpine AS backend_static_build
 WORKDIR /app/backend
 COPY backend/package.json backend/package-lock.json ./
-# Evitar que postinstall dispare prisma generate en este stage
-ENV PRISMA_SKIP_POSTINSTALL_GENERATE=1
-# Instalar dependencias sin ejecutar scripts de postinstall
 RUN npm ci --ignore-scripts
 COPY backend/public ./public/
 
@@ -32,7 +29,7 @@ FROM nginx:1.27-alpine
 WORKDIR /usr/share/nginx/html
 RUN rm -rf ./*
 COPY --from=frontend_build /app/dist/ .
-COPY --from=backend_static_build /app/backend/public/ ./backend_public/ # Copiar la carpeta public del backend
+COPY --from=backend_static_build /app/backend/public/ ./backend_public/
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 EXPOSE 80
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 CMD wget -qO- http://localhost/ | grep -q "</html>" || exit 1
