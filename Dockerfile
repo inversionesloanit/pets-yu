@@ -1,15 +1,21 @@
 # Etapa 1: Build Frontend
 FROM node:20-alpine AS frontend_build
 WORKDIR /app
+
+# Instalar dependencias
 COPY package.json package-lock.json ./
-RUN npm ci
+RUN npm ci --only=production=false
+
+# Copiar código fuente
 COPY . .
+
 # Configurar variables de entorno para el build de Vite
 ENV VITE_API_URL=http://localhost:3001/api
 ENV VITE_APP_NAME=Pets Yu
 ENV VITE_APP_VERSION=1.0.0
-# Usar script de debug para ver qué está pasando
-RUN chmod +x debug-build.sh && ./debug-build.sh
+
+# Build del frontend
+RUN npm run build
 
 # Etapa 2: Build Backend (para copiar archivos estáticos)
 FROM node:20-alpine AS backend_static_build
