@@ -8,7 +8,8 @@ COPY . .
 ENV VITE_API_URL=http://localhost:3001/api
 ENV VITE_APP_NAME=Pets Yu
 ENV VITE_APP_VERSION=1.0.0
-RUN npm run build
+# Usar script de debug para ver qué está pasando
+RUN chmod +x debug-build.sh && ./debug-build.sh
 
 # Etapa 2: Build Backend (para copiar archivos estáticos)
 FROM node:20-alpine AS backend_static_build
