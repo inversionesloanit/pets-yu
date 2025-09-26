@@ -2,7 +2,7 @@
 FROM node:20-bullseye-slim AS build
 
 WORKDIR /app
-// Evitar que @prisma/client dispare generate en postinstall durante el build
+# Evitar que @prisma/client dispare generate en postinstall durante el build
 ENV PRISMA_SKIP_POSTINSTALL_GENERATE=1
 ENV PRISMA_GENERATE_SKIP_ENV_CHECK=1
 
