@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { X, Mail, Lock, User, Phone, MapPin, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -13,30 +13,15 @@ export default function RegisterModal({ isOpen, onClose, onSwitchToLogin }) {
     city: '',
     country: '',
   });
+  const [errors, setErrors] = useState({});
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const { register, isLoading, error, clearError } = useAuth();
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    clearError();
-
-    if (formData.password !== formData.confirmPassword) {
-      return;
-    }
-
-    const result = await register({
-      name: formData.name,
-      email: formData.email,
-      password: formData.password,
-      phone: formData.phone,
-      address: formData.address,
-      city: formData.city,
-      country: formData.country,
-    });
-
-    if (result.success) {
-      onClose();
+  useEffect(() => {
+    if (isOpen) {
+      setErrors({});
+      clearError();
       setFormData({
         name: '',
         email: '',
@@ -48,6 +33,59 @@ export default function RegisterModal({ isOpen, onClose, onSwitchToLogin }) {
         country: '',
       });
     }
+  }, [isOpen, clearError]);
+
+  const validateForm = () => {
+    const newErrors = {};
+    if (!formData.name.trim()) newErrors.name = 'El nombre es requerido';
+    if (!formData.email.trim()) {
+      newErrors.email = 'El correo electrónico es requerido';
+    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
+      newErrors.email = 'El formato del correo electrónico no es válido';
+    }
+    if (!formData.password.trim()) {
+      newErrors.password = 'La contraseña es requerida';
+    } else if (formData.password.length < 6) {
+      newErrors.password = 'La contraseña debe tener al menos 6 caracteres';
+    }
+    if (!formData.confirmPassword.trim()) {
+      newErrors.confirmPassword = 'La confirmación de contraseña es requerida';
+    } else if (formData.password !== formData.confirmPassword) {
+      newErrors.confirmPassword = 'Las contraseñas no coinciden';
+    }
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    clearError();
+
+    if (validateForm()) {
+      const result = await register({
+        name: formData.name,
+        email: formData.email,
+        password: formData.password,
+        phone: formData.phone,
+        address: formData.address,
+        city: formData.city,
+        country: formData.country,
+      });
+
+      if (result.success) {
+        onClose();
+        setFormData({
+          name: '',
+          email: '',
+          password: '',
+          confirmPassword: '',
+          phone: '',
+          address: '',
+          city: '',
+          country: '',
+        });
+      }
+    }
   };
 
   const handleChange = (e) => {
@@ -55,6 +93,9 @@ export default function RegisterModal({ isOpen, onClose, onSwitchToLogin }) {
       ...formData,
       [e.target.name]: e.target.value,
     });
+    if (errors[e.target.name]) {
+      setErrors((prev) => ({ ...prev, [e.target.name]: null }));
+    }
   };
 
   if (!isOpen) return null;
@@ -82,39 +123,37 @@ export default function RegisterModal({ isOpen, onClose, onSwitchToLogin }) {
               </div>
             )}
 
-            {formData.password !== formData.confirmPassword && formData.confirmPassword && (
-              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
-                Las contraseñas no coinciden
-              </div>
-            )}
-
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
                   Nombre Completo *
                 </label>
                 <div className="relative">
                   <User size={20} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                   <input
                     type="text"
+                    id="name"
                     name="name"
                     value={formData.name}
                     onChange={handleChange}
-                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
+                    className={`w-full pl-10 pr-4 py-3 border ${errors.name ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent`}
                     placeholder="Tu nombre completo"
-                    required
+                    aria-invalid={errors.name ? "true" : "false"}
+                    aria-describedby="name-error"
                   />
                 </div>
+                {errors.name && <p id="name-error" className="text-red-500 text-xs mt-1">{errors.name}</p>}
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-2">
                   Teléfono
                 </label>
                 <div className="relative">
                   <Phone size={20} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                   <input
                     type="tel"
+                    id="phone"
                     name="phone"
                     value={formData.phone}
                     onChange={handleChange}
@@ -126,39 +165,43 @@ export default function RegisterModal({ isOpen, onClose, onSwitchToLogin }) {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
                 Correo Electrónico *
               </label>
               <div className="relative">
                 <Mail size={20} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                 <input
                   type="email"
+                  id="email"
                   name="email"
                   value={formData.email}
                   onChange={handleChange}
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
+                  className={`w-full pl-10 pr-4 py-3 border ${errors.email ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent`}
                   placeholder="tu@email.com"
-                  required
+                  aria-invalid={errors.email ? "true" : "false"}
+                  aria-describedby="email-error"
                 />
               </div>
+              {errors.email && <p id="email-error" className="text-red-500 text-xs mt-1">{errors.email}</p>}
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
                   Contraseña *
                 </label>
                 <div className="relative">
                   <Lock size={20} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                   <input
                     type={showPassword ? 'text' : 'password'}
+                    id="password"
                     name="password"
                     value={formData.password}
                     onChange={handleChange}
-                    className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
+                    className={`w-full pl-10 pr-12 py-3 border ${errors.password ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent`}
                     placeholder="Mínimo 6 caracteres"
-                    required
-                    minLength={6}
+                    aria-invalid={errors.password ? "true" : "false"}
+                    aria-describedby="password-error"
                   />
                   <button
                     type="button"
@@ -168,22 +211,25 @@ export default function RegisterModal({ isOpen, onClose, onSwitchToLogin }) {
                     {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                   </button>
                 </div>
+                {errors.password && <p id="password-error" className="text-red-500 text-xs mt-1">{errors.password}</p>}
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-2">
                   Confirmar Contraseña *
                 </label>
                 <div className="relative">
                   <Lock size={20} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                   <input
                     type={showConfirmPassword ? 'text' : 'password'}
+                    id="confirmPassword"
                     name="confirmPassword"
                     value={formData.confirmPassword}
                     onChange={handleChange}
-                    className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
+                    className={`w-full pl-10 pr-12 py-3 border ${errors.confirmPassword ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent`}
                     placeholder="Repite tu contraseña"
-                    required
+                    aria-invalid={errors.confirmPassword ? "true" : "false"}
+                    aria-describedby="confirmPassword-error"
                   />
                   <button
                     type="button"
@@ -193,17 +239,19 @@ export default function RegisterModal({ isOpen, onClose, onSwitchToLogin }) {
                     {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                   </button>
                 </div>
+                {errors.confirmPassword && <p id="confirmPassword-error" className="text-red-500 text-xs mt-1">{errors.confirmPassword}</p>}
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="address" className="block text-sm font-medium text-gray-700 mb-2">
                 Dirección
               </label>
               <div className="relative">
                 <MapPin size={20} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                 <input
                   type="text"
+                  id="address"
                   name="address"
                   value={formData.address}
                   onChange={handleChange}
@@ -215,11 +263,12 @@ export default function RegisterModal({ isOpen, onClose, onSwitchToLogin }) {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="city" className="block text-sm font-medium text-gray-700 mb-2">
                   Ciudad
                 </label>
                 <input
                   type="text"
+                  id="city"
                   name="city"
                   value={formData.city}
                   onChange={handleChange}
@@ -229,11 +278,12 @@ export default function RegisterModal({ isOpen, onClose, onSwitchToLogin }) {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="country" className="block text-sm font-medium text-gray-700 mb-2">
                   País
                 </label>
                 <input
                   type="text"
+                  id="country"
                   name="country"
                   value={formData.country}
                   onChange={handleChange}
@@ -245,7 +295,7 @@ export default function RegisterModal({ isOpen, onClose, onSwitchToLogin }) {
 
             <button
               type="submit"
-              disabled={isLoading || formData.password !== formData.confirmPassword}
+              disabled={isLoading || !validateForm()} // Deshabilitar si hay errores de validación
               className="w-full bg-yellow-600 hover:bg-yellow-700 disabled:bg-yellow-400 text-white py-3 rounded-lg font-semibold transition-colors"
             >
               {isLoading ? 'Creando cuenta...' : 'Crear Cuenta'}

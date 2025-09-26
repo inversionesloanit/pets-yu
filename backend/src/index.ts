@@ -8,6 +8,8 @@ import { generalLimiter, authLimiter, strictLimiter } from './middleware/rateLim
 import { securityHeaders, requestSizeLimiter, corsOptions, sanitizeInput } from './middleware/security';
 import { errorHandler, notFoundHandler, initializeErrorHandling } from './middleware/errorHandler';
 import { logger, requestLogger, performanceLogger } from './utils/logger';
+import swaggerUi from 'swagger-ui-express'; // Importar swagger-ui-express
+import swaggerSpec from './swagger'; // Importar la configuración de Swagger
 
 // Import routes
 import authRoutes from './routes/auth';
@@ -78,6 +80,9 @@ app.use('/api/orders', strictLimiter.middleware(), orderRoutes);
 app.use('/api/testimonials', testimonialRoutes);
 app.use('/admin', adminRoutes);
 app.use('/api/inventory', inventoryRoutes);
+
+// Ruta para la documentación de Swagger
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 // Health check
 app.get('/api/health', (req, res) => {

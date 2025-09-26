@@ -38,3 +38,5 @@ export FRONTEND_URL="http://localhost:8090"
 # Iniciar el servidor
 echo "🌟 Iniciando servidor backend en puerto 3001..."
 npm start
+
+
